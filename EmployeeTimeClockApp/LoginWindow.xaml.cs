@@ -1,16 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+﻿using System.Windows;
+using EmployeeTimeClockApp.Data;
+using EmployeeTimeClockApp.Models;
 
 namespace EmployeeTimeClockApp
 {
@@ -27,28 +17,31 @@ namespace EmployeeTimeClockApp
             this.Close();
         }
 
-        // Login button → basic validation, then open MainWindow
+        // Login button → validate and authenticate, then open MainWindow
         private void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            // Clear any previous error
             ErrorText.Text = string.Empty;
 
             string username = UsernameTextBox.Text.Trim();
             string password = PasswordBox.Password;
 
-            // Simple validation for now
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
                 ErrorText.Text = "Please enter both username and password.";
                 return;
             }
 
-            // TODO: Replace this with real database login later
+            UserAccount user = DatabaseHelper.AuthenticateUser(username, password);
 
-            MainWindow mainWindow = new MainWindow();
+            if (user == null)
+            {
+                ErrorText.Text = "Invalid username or password.";
+                return;
+            }
+
+            MainWindow mainWindow = new MainWindow(user);
             mainWindow.Show();
 
-            // Close the login window after successful login
             this.Close();
         }
     }
