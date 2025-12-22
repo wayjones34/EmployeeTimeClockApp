@@ -73,14 +73,14 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3*"/>
                         <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="3*"/>
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                        <TextBlock Text="Select Employee"
-                                   FontWeight="SemiBold"
-                                   FontSize="13"
-                                   Margin="0,0,0,4"/>
+    <TextBlock Text="Select Employee"
+               FontWeight="SemiBold"
+               FontSize="13"
+               Margin="0,0,0,4"/>
                         <ComboBox x:Name="EmployeeComboBox"
                                   Height="28"
                                   DisplayMemberPath="FullName"
@@ -88,8 +88,15 @@
                                   IsEditable="False"
                                   Padding="4"/>
                     </StackPanel>
+                    <Button x:Name="ResetPasswordButton"
+        Content="Reset Password"
+        Width="120"
+        Height="30"
+        Click="ResetPassword_Click"/>
+
 
                     <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        
                         <TextBlock Text="Badge Number (optional)"
                                    FontWeight="SemiBold"
                                    FontSize="13"
@@ -97,35 +104,67 @@
                         <TextBox x:Name="BadgeTextBox"
                                  Height="28"
                                  Padding="4"
-                                 HorizontalAlignment="Stretch"/>
+                                 HorizontalAlignment="Stretch" Width="80" RenderTransformOrigin="0.538,0.017"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom">
+            Orientation="Vertical"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom">
+
+                        <Button x:Name="AddEmployeeButton"
+                                
+        Content="Add Employee"
+        MinWidth="120"
+        Height="32"
+        Margin="0,0,8,0"
+        Click="AddEmployee_Click"
+        Background="#2563EB"
+        Foreground="White"
+        FontWeight="SemiBold"
+        BorderThickness="0"
+        Cursor="Hand"/>
+        <Button x:Name="CreateAccountButton"
+        Content="Create Account"
+        Width="140"
+        Height="32"
+        Margin="0,0,0,8"
+        Click="CreateAccount_Click"
+        Background="#0EA5E9"
+        Foreground="White"
+        FontWeight="SemiBold"
+        BorderThickness="0"
+        Cursor="Hand"
+        IsEnabled="False"/>
+
+
+
+
                         <Button x:Name="ClockInButton"
-                                Content="Clock In"
-                                Width="90"
-                                Height="32"
-                                Margin="0,0,8,0"
-                                Click="ClockInButton_Click"
-                                Background="#10B981"
-                                Foreground="White"
-                                FontWeight="SemiBold"
-                                BorderThickness="0"
-                                Cursor="Hand"/>
+            Content="Clock In"
+            Width="90"
+            Height="32"
+            Margin="0,0,8,0"
+            Click="ClockInButton_Click"
+            Background="#10B981"
+            Foreground="White"
+            FontWeight="SemiBold"
+            BorderThickness="0"
+            Cursor="Hand"/>
+                        
+
                         <Button x:Name="ClockOutButton"
-                                Content="Clock Out"
-                                Width="90"
-                                Height="32"
-                                Click="ClockOutButton_Click"
-                                Background="#EF4444"
-                                Foreground="White"
-                                FontWeight="SemiBold"
-                                BorderThickness="0"
-                                Cursor="Hand"/>
+            Content="Clock Out"
+            Width="90"
+            Height="32"
+            Click="ClockOutButton_Click"
+            Background="#EF4444"
+            Foreground="White"
+            FontWeight="SemiBold"
+            BorderThickness="0"
+            Cursor="Hand"/>
                     </StackPanel>
+
                 </Grid>
             </Border>
 
@@ -165,8 +204,10 @@
                                 <Setter Property="HorizontalContentAlignment" Value="Left"/>
                             </Style>
                         </DataGrid.Resources>
+                        
 
                         <DataGrid.Columns>
+                            
                             <DataGridTextColumn Header="Clock In"
                                                 Binding="{Binding ClockInTime, StringFormat=g}"
                                                 Width="*"/>

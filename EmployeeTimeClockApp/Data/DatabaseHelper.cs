@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using EmployeeTimeClockApp.Models;
 using EmployeeTimeClockApp.Data;
+using EmployeeTimeClockApp.Security;
+
 
 namespace EmployeeTimeClockApp.Data
 {
     public static class DatabaseHelper
+
 
     {
         private const string ConnectionString =
@@ -39,8 +42,58 @@ namespace EmployeeTimeClockApp.Data
                 }
             }
 
+
             return employees;
         }
+
+        public static void InsertEmployee(string firstName, string lastName, string badgeNumber)
+        {
+            using (var conn = new SqlConnection(ConnectionString))
+            using (var cmd = new SqlCommand(@"
+        INSERT INTO Employees (FirstName, LastName, BadgeNumber)
+        VALUES (@FirstName, @LastName, @BadgeNumber);", conn))
+            {
+                cmd.Parameters.AddWithValue("@FirstName", firstName);
+                cmd.Parameters.AddWithValue("@LastName", lastName);
+                cmd.Parameters.AddWithValue("@BadgeNumber", (object)badgeNumber ?? DBNull.Value);
+
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static void CreateUserAccount(string username, string password, string role, int? employeeId)
+        {
+            using (var conn = new SqlConnection(ConnectionString))
+            using (var cmd = new SqlCommand(@"
+        INSERT INTO Users (Username, Password, Role, EmployeeId)
+        VALUES (@Username, @Password, @Role, @EmployeeId);", conn))
+            {
+                cmd.Parameters.AddWithValue("@Username", username);
+                cmd.Parameters.AddWithValue("@Password", password);
+                cmd.Parameters.AddWithValue("@Role", role);
+                cmd.Parameters.AddWithValue("@EmployeeId", (object)employeeId ?? DBNull.Value);
+
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static bool EmployeeHasUserAccount(int employeeId)
+        {
+            using (var conn = new SqlConnection(ConnectionString))
+            using (var cmd = new SqlCommand(@"
+        SELECT COUNT(1)
+        FROM Users
+        WHERE EmployeeId = @EmployeeId;", conn))
+            {
+                cmd.Parameters.AddWithValue("@EmployeeId", employeeId);
+                conn.Open();
+                int count = (int)cmd.ExecuteScalar();
+                return count > 0;
+            }
+        }
+
+
+
 
         // 1b. Get a single employee by ID (used for employee-locked logins)
         public static Employee GetEmployeeById(int employeeId)
@@ -173,6 +226,25 @@ namespace EmployeeTimeClockApp.Data
                 return totalSeconds / 3600.0;
             }
         }
+        public static void ResetUserPasswordByEmployeeId(int employeeId, string newPassword)
+        {
+            using (var conn = new SqlConnection(ConnectionString))
+            using (var cmd = new SqlCommand(@"
+        UPDATE Users
+        SET Password = @Password
+        WHERE EmployeeId = @EmployeeId;", conn))
+            {
+                cmd.Parameters.AddWithValue("@Password", newPassword);
+                cmd.Parameters.AddWithValue("@EmployeeId", employeeId);
+
+                conn.Open();
+                int rows = cmd.ExecuteNonQuery();
+
+                if (rows == 0)
+                    throw new Exception("No user account found for that employee.");
+            }
+        }
+
 
 
 

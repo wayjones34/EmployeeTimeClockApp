@@ -74,6 +74,7 @@ namespace EmployeeTimeClockApp
         pdfDoc.Close();
     }
 
+
     MessageBox.Show("Weekly PDF exported successfully.", "Export");
 }
 
@@ -93,6 +94,55 @@ namespace EmployeeTimeClockApp
             return DatabaseHelper.GetEmployeeById(_currentUserAccount.EmployeeId.Value);
 
         }
+        private void UpdateCreateAccountButtonState()
+        {
+            if (!IsAdmin)
+            {
+                CreateAccountButton.IsEnabled = false;
+                ResetPasswordButton.IsEnabled = false;
+                return;
+            }
+
+            var emp = EmployeeComboBox.SelectedItem as EmployeeTimeClockApp.Models.Employee;
+            if (emp == null)
+            {
+                CreateAccountButton.IsEnabled = false;
+                ResetPasswordButton.IsEnabled = false;
+                CreateAccountButton.Content = "Create Account";
+                return;
+            }
+
+            bool hasAccount = DatabaseHelper.EmployeeHasUserAccount(emp.EmployeeId);
+
+            // If they already have an account → enable Reset
+            ResetPasswordButton.IsEnabled = hasAccount;
+
+            // If no account → enable Create Account
+            CreateAccountButton.IsEnabled = !hasAccount;
+
+            CreateAccountButton.Content = hasAccount ? "Account Exists" : "Create Account";
+        }
+
+        private void CreateAccount_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsAdmin)
+            {
+                MessageBox.Show("Only Admin can create accounts.");
+                return;
+            }
+
+            var emp = EmployeeComboBox.SelectedItem as EmployeeTimeClockApp.Models.Employee;
+            if (emp == null)
+            {
+                MessageBox.Show("Select an employee first.");
+                return;
+            }
+
+            var win = new CreateAccountWindow(emp.EmployeeId);
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
 
         private DispatcherTimer _timer;   // ✅ REQUIRED for StartClock()
         private DispatcherTimer _refreshTimer;
@@ -102,10 +152,22 @@ namespace EmployeeTimeClockApp
 
 
         public MainWindow(UserAccount user)
-
         {
             InitializeComponent();
-            _currentUserAccount = user;
+
+            _currentUserAccount = user;   // ✅ set first
+
+            AddEmployeeButton.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
+            CreateAccountButton.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
+            ResetPasswordButton.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
+            BadgeTextBox.IsEnabled = IsAdmin;
+
+            EmployeeComboBox.SelectionChanged += EmployeeComboBox_SelectionChanged;
+            UpdateCreateAccountButtonState();
+
+
+            CreateAccountButton.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
+
 
             string displayName = _currentUserAccount.Username; // fallback
 
@@ -120,11 +182,38 @@ namespace EmployeeTimeClockApp
             LoggedInUserText.Text = $"Logged in as: {displayName} ({_currentUserAccount.Role})";
 
 
+
             LoadEmployees();
             StartClock();
             StartAutoRefresh();
 
         }
+        private void AddEmployee_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsAdmin)
+            {
+                MessageBox.Show("Only Admin can add employees.");
+                return;
+
+            }
+            if (!IsAdmin)
+            {
+                MessageBox.Show("Access denied.");
+                return;
+            }
+
+
+            var win = new CreateEmployeeWindow();
+            win.Owner = this;
+
+            if (win.ShowDialog() == true)
+            {
+
+                LoadEmployees(); // refresh employee dropdown
+            }
+
+        }
+
 
 
         public MainWindow(string username) : this(new UserAccount
@@ -204,6 +293,35 @@ namespace EmployeeTimeClockApp
             };
             _refreshTimer.Start();
         }
+        private void EmployeeComboBox_SelectionChanged(
+    object sender,
+    System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            RefreshEntries();
+            UpdateCreateAccountButtonState();
+        }
+        private void ResetPassword_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsAdmin)
+            {
+                MessageBox.Show("Only Admin can reset passwords.");
+                return;
+            }
+
+            var emp = EmployeeComboBox.SelectedItem as EmployeeTimeClockApp.Models.Employee;
+            if (emp == null)
+            {
+                MessageBox.Show("Select an employee first.");
+                return;
+            }
+
+            var win = new ResetPasswordWindow(emp.EmployeeId, emp.FullName);
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
+
+
 
         private void LoadWeeklyReport()
         {
@@ -230,28 +348,27 @@ namespace EmployeeTimeClockApp
         // -------------------------------
         // Load Employee List
         // -------------------------------
+
         private void LoadEmployees()
         {
             try
             {
                 if (IsAdmin)
                 {
-                    // Admin: see everyone
                     var employees = DatabaseHelper.GetActiveEmployees();
-                    EmployeeComboBox.SelectionChanged += (s, e) => RefreshEntries();
                     EmployeeComboBox.ItemsSource = employees;
                     EmployeeComboBox.IsEnabled = true;
                     BadgeTextBox.IsEnabled = true;
+
+                    if (employees.Count > 0 && EmployeeComboBox.SelectedIndex < 0)
+                        EmployeeComboBox.SelectedIndex = 0;
                 }
                 else
                 {
-                    // Employee: locked to their EmployeeId
+                    // Employee must be linked to an EmployeeId
                     if (_currentUserAccount.EmployeeId == null)
                     {
                         StatusText.Text = "User account not linked to an EmployeeId.";
-                        MessageBox.Show("Your login is not linked to an Employee record. Contact an admin.",
-                            "Login Setup Issue", MessageBoxButton.OK, MessageBoxImage.Warning);
-
                         EmployeeComboBox.IsEnabled = false;
                         BadgeTextBox.IsEnabled = false;
                         return;
@@ -262,34 +379,29 @@ namespace EmployeeTimeClockApp
                     if (emp == null)
                     {
                         StatusText.Text = "Employee record not found.";
-                        MessageBox.Show("Employee record not found for this login. Contact an admin.",
-                            "Login Setup Issue", MessageBoxButton.OK, MessageBoxImage.Warning);
-
                         EmployeeComboBox.IsEnabled = false;
                         BadgeTextBox.IsEnabled = false;
                         return;
                     }
 
-
-                    // Show only themselves + lock selection
-                    EmployeeComboBox.ItemsSource = new List<Employee> { emp };
-
+                    // Show only themselves
+                    EmployeeComboBox.ItemsSource = new List<EmployeeTimeClockApp.Models.Employee> { emp };
                     EmployeeComboBox.SelectedIndex = 0;
+
+                    // Lock UI for employee
                     EmployeeComboBox.IsEnabled = false;
-
-                    // Optional: lock badge box too
                     BadgeTextBox.IsEnabled = false;
-
-                    RefreshEntries();
                 }
+
+                RefreshEntries();
             }
             catch (Exception ex)
             {
                 StatusText.Text = "Error loading employees.";
-                MessageBox.Show(ex.Message, "Database Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
 
 
